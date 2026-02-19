@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Paint Supremo</title>
+
+<style>
+body {
+  margin: 0;
+  background: #ccc;
+  font-family: Arial;
+}
+
+#menu {
+  background: #eee;
+  padding: 8px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+canvas {
+  background: white;
+  cursor: crosshair;
+}
+
+#area {
+  position: relative;
+  width: 900px;
+  height: 500px;
+  margin: auto;
+}
+</style>
+</head>
+
+<body>
+
+<div id="menu">
+  🎨 <input type="color" id="cor" value="#000000">
+  📏 <input type="range" id="tamanho" min="1" max="30" value="4">
+  <button onclick="modo='pincel'">🖌️</button>
+  <button onclick="modo='borracha'">🧽</button>
+  <button onclick="modo='linha'">📏</button>
+  <button onclick="modo='retangulo'">⬛</button>
+  <button onclick="modo='circulo'">⚪</button>
+  <input type="file" id="imagem">
+  <button onclick="limpar()">🧹</button>
+  <button onclick="salvar()">💾</button>
+</div>
+
+<div id="area">
+  <canvas id="fundo" width="900" height="500"
+    style="position:absolute;left:0;top:0;"></canvas>
+  <canvas id="tela" width="900" height="500"
+    style="position:absolute;left:0;top:0;"></canvas>
+</div>
+
+<script>
+const canvas = document.getElementById("tela");
+const fundo = document.getElementById("fundo");
+const ctx = canvas.getContext("2d");
+const ctxFundo = fundo.getContext("2d");
+
+let desenhando = false;
+let modo = "pincel";
+let x0, y0;
+let tempImg;
+
+let historico = [];
+let refazer = [];
+
+ctx.lineCap = "round";
+ctx.lineJoin = "round";
+ctx.setLineDash([]);
+
+canvas.addEventListener("mousedown", e => {
+  desenhando = true;
+  x0 = e.offsetX;
+  y0 = e.offsetY;
+  tempImg = ctx.getImageData(0,0,canvas.width,canvas.height);
+  ctx.beginPath();
+  ctx.moveTo(x0, y0);
+});
+
+canvas.addEventListener("mousemove", e => {
+  if (!desenhando) return;
+  ctx.putImageData(tempImg,0,0);
+
+  const x = e.offsetX;
+  const y = e.offsetY;
+
+  ctx.lineWidth = tamanho.value;
+  ctx.strokeStyle = modo === "borracha" ? "white" : cor.value;
+
+  if (modo === "pincel" || modo === "borracha") {
+    ctx.lineTo(x,y);
+    ctx.stroke();
+  }
+
+  if (modo === "linha") {
+    ctx.beginPath();
+    ctx.moveTo(x0,y0);
+    ctx.lineTo(x,y);
+    ctx.stroke();
+  }
+
+  if (modo === "retangulo") {
+    ctx.strokeRect(x0,y0,x-x0,y-y0);
+  }
+
+  if (modo === "circulo") {
+    ctx.beginPath();
+    ctx.arc(x0,y0,Math.hypot(x-x0,y-y0),0,Math.PI*2);
+    ctx.stroke();
+  }
+});
+
+canvas.addEventListener("mouseup", () => {
+  desenhando = false;
+  historico.push(canvas.toDataURL());
+  refazer = [];
+});
+
+function limpar() {
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctxFundo.clearRect(0,0,fundo.width,fundo.height);
+}
+
+function salvar() {
+  const a = document.createElement("a");
+  a.download = "desenho.png";
+  a.href = canvas.toDataURL();
+  a.click();
+}
+
+document.getElementById("imagem").addEventListener("change", e => {
+  const img = new Image();
+  img.onload = () => ctxFundo.drawImage(img,0,0,fundo.width,fundo.height);
+  img.src = URL.createObjectURL(e.target.files[0]);
+});
+
+document.addEventListener("keydown", e => {
+  if (e.key === "b") modo="pincel";
+  if (e.key === "e") modo="borracha";
+  if (e.key === "l") modo="linha";
+  if (e.key === "r") modo="retangulo";
+  if (e.key === "c") modo="circulo";
+  if (e.ctrlKey && e.key === "z") desfazer();
+  if (e.ctrlKey && e.key === "y") refazerAcao();
+});
+
+function desfazer() {
+  if (historico.length === 0) return;
+  refazer.push(canvas.toDataURL());
+  const img = new Image();
+  img.src = historico.pop();
+  img.onload = () => ctx.drawImage(img,0,0);
+}
+
+function refazerAcao() {
+  if (refazer.length === 0) return;
+  historico.push(canvas.toDataURL());
+  const img = new Image();
+  img.src = refazer.pop();
+  img.onload = () => ctx.drawImage(img,0,0);
+}
+</script>
+
+</body>
+</html>
