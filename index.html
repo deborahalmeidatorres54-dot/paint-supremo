@@ -34,7 +34,11 @@ canvas {
 </style>
 </head>
 
-<body>
+<script>
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("./sw.js");
+}
+</script><body>
 
 <div id="menu">
   🎨 <input type="color" id="cor" value="#000000">
@@ -169,3 +173,4 @@ function refazerAcao() {
 
 </body>
 </html>
+
